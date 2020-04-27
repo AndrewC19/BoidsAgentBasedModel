@@ -1,8 +1,10 @@
 package utilities;
 
-public class BoidVector {
-    private double x;
-    private double y;
+import model.Boid;
+
+public class BoidVector implements Cloneable {
+    public double x;
+    public double y;
 
     public BoidVector() {
         this.x = 0.0;
@@ -14,24 +16,29 @@ public class BoidVector {
         this.y = y;
     }
 
-    public void add(BoidVector boidVector) {
-        this.x += boidVector.x;
-        this.y += boidVector.y;
+    public BoidVector(BoidVector copyInstance) {
+        this.x = copyInstance.x;
+        this.y = copyInstance.y;
     }
 
-    public void subtract(BoidVector boidVector) {
-        this.x -= boidVector.x;
-        this.y -= boidVector.y;
+    public BoidVector add(BoidVector boidVector) {
+        return new BoidVector(this.x += boidVector.x, this.y += boidVector.y);
     }
 
-    public void multiply(double multiplier) {
-        this.x *= multiplier;
-        this.y *= multiplier;
+    public BoidVector subtract(BoidVector boidVector) {
+        return new BoidVector(this.x -= boidVector.x, this.y -= boidVector.y);
     }
 
-    public void divide(double divisor) {
-        this.x /= divisor;
-        this.y /= divisor;
+    public BoidVector multiply(double multiplier) {
+        double x = this.x / multiplier;
+        double y = this.y / multiplier;
+        return new BoidVector(x, y);
+    }
+
+    public BoidVector divide(double divisor) {
+        double x = this.x / divisor;
+        double y = this.y / divisor;
+        return new BoidVector(x, y);
     }
 
     public double relativeBearing(BoidVector boidVector) {
@@ -52,5 +59,7 @@ public class BoidVector {
         return Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2));
     }
 
-
+    public String toString() {
+        return "(" + this.x + ", " + this.y + ")";
+    }
 }
