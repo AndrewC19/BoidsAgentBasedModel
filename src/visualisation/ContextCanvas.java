@@ -21,8 +21,8 @@ import model.Sky;
 
 
 public class ContextCanvas extends Application {
-    private static final int width = 1200;
-    private static final int height = 800;
+    private static final int width = 1920;
+    private static final int height = 1000;
 
 
     @Override
@@ -35,27 +35,16 @@ public class ContextCanvas extends Application {
         primaryStage.setScene(scene);
         animateBoids(scene);
         primaryStage.show();
-
-//
-//        List<ImageView> boidImages = Arrays.asList(
-//                new ImageView("file:resources/images/yellow_boid.png"),
-//                new ImageView("file:resources/images/blue_boid.png"),
-//                new ImageView("file:resources/images/green_boid.png"),
-//                new ImageView("file:resources/images/pink_boid.png"),
-//                new ImageView("file:resources/images/purple_boid.png"),
-//                new ImageView("file:resources/images/red_boid.png"),
-//                new ImageView("file:resources/images/teal_boid.png")
-//        );
     }
 
     public void animateBoids(final Scene scene) {
-        Sky context = new Sky(width, height, 10, 10);
+        Sky context = new Sky(width, height, 100, 1000, 20, 15, 15, 40, 100, 1);
         List<ImageView> boidSprites = context.getBoidSprites();
         final Group root = (Group) scene.getRoot();
         root.getChildren().addAll(boidSprites);
         Timeline tl = new Timeline();
         tl.setCycleCount(Animation.INDEFINITE);
-        KeyFrame update = new KeyFrame(Duration.seconds(0.2),
+        KeyFrame update = new KeyFrame(Duration.seconds(0.05),
                 new EventHandler<ActionEvent>() {
                     public void handle(ActionEvent event) {
                         context.updateContext();
@@ -63,10 +52,6 @@ public class ContextCanvas extends Application {
                 });
         tl.getKeyFrames().add(update);
         tl.play();
-    }
-
-    public void updateBoidPositions(List<ImageView> boidImages) {
-
     }
 
     public static void main(String[] args) {

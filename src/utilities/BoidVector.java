@@ -47,15 +47,11 @@ public class BoidVector implements Cloneable {
         return Math.toDegrees(Math.atan2(dy, dx));
     }
 
-    public double absX() {
-        return Math.sqrt(Math.pow(this.x, 2));
+    public BoidVector abs() {
+        return new BoidVector(Math.abs(this.x), Math.abs(this.y));
     }
 
-    public double absY() {
-        return Math.sqrt(Math.pow(this.y, 2));
-    }
-
-    public double abs() {
+    public double magnitude() {
         return Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2));
     }
 

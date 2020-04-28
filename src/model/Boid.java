@@ -9,6 +9,7 @@ public class Boid extends Agent implements Cloneable {
 
     public BoidVector position;
     public BoidVector velocity;
+    public double heading;
     public ImageView sprite;
 
     /**
@@ -16,11 +17,12 @@ public class Boid extends Agent implements Cloneable {
      * @param x horizontal position
      * @param y vertical position
      */
-    public Boid(int x, int y) {
+    public Boid(int x, int y, int heading) {
         this.position = new BoidVector(x, y);
         this.velocity = new BoidVector();
+        this.heading = heading;
         this.sprite = new ImageView("file:resources/images/" + selectRandomBoidColour() + "_boid.png");
-        drawSprite(this.position);
+        drawSprite();
         this.sprite.setSmooth(true);
         this.sprite.setCache(true);
     }
@@ -36,34 +38,12 @@ public class Boid extends Agent implements Cloneable {
     }
 
     /**
-     * Draws the Boid on the canvas at a given position
-     * @param position current location of the boid
+     * Draws the Boid on the canvas at the current position, pointing towards its current heading
      */
-    public void drawSprite(BoidVector position) {
-        this.sprite.setX(position.x);
-        this.sprite.setY(position.y);
-    }
-
-    /**
-     * Draws the Boid on the canvas at a given position
-     * @param position current location of the boid
-     * @param rotation angle to rotate sprite
-     */
-    public void drawSprite(BoidVector position, double rotation) {
-        this.sprite.setRotate(rotation);
-        this.sprite.setX(position.x);
-        this.sprite.setY(position.y);
-        System.out.println(rotation);
-
-    }
-
-    /**
-     * Rotates the Boid to point towards a given position it will move to in the next iteration
-     * @param nextPosition
-     */
-    public void rotateSpriteTowardsNextPosition(BoidVector nextPosition) {
-        double bearingRelativeToNextPosition = this.position.relativeBearing(nextPosition);
-        this.sprite.setRotate(bearingRelativeToNextPosition);
+    public void drawSprite() {
+        this.sprite.setRotate(this.heading);
+        this.sprite.setX(this.position.x);
+        this.sprite.setY(this.position.y);
     }
 
     /**
@@ -79,13 +59,41 @@ public class Boid extends Agent implements Cloneable {
         return movementTowardsCentreOfMass;
     }
 
-//    public BoidVector separation() {
-//
-//    }
-//
-//    public BoidVector alignment() {
-//
-//    }
+    public BoidVector separation(List<Boid> neighbours, int separationFactor, int separationSmoothing) {
+        BoidVector movementAwayFromNeighbours = new BoidVector();
+        for (Boid boid : neighbours) {
+            if (!boid.equals(this)) {
+                BoidVector neighbourPosition = new BoidVector(boid.position);
+                BoidVector boidsSeparation = neighbourPosition.subtract(this.position);
+                double boidsSeparationMagnitude = boidsSeparation.magnitude();
+                if (boidsSeparationMagnitude < separationFactor) {
+                    movementAwayFromNeighbours = movementAwayFromNeighbours.subtract(boidsSeparation).divide(separationSmoothing);
+                }
+            }
+        }
+        return movementAwayFromNeighbours;
+    }
+
+    public BoidVector velocityAlignment(List<Boid> neighbours, int velocityAlignmentFactor) {
+        BoidVector perceivedVelocity = new BoidVector();
+        for (Boid boid : neighbours) {
+            if (!boid.equals(this)) {
+                perceivedVelocity = perceivedVelocity.add(boid.velocity);
+            }
+        }
+        perceivedVelocity = perceivedVelocity.divide(neighbours.size()-1);
+        return perceivedVelocity.subtract(this.velocity).divide(velocityAlignmentFactor);
+    }
+
+    public void headingAlignment(List<Boid> neighbours, int headingAlignmentFactor) {
+        double perceivedHeading = 0;
+        for (Boid boid : neighbours) {
+            if (!boid.equals(this)) {
+                perceivedHeading += boid.heading;
+            }
+        }
+        this.heading = perceivedHeading/(neighbours.size()-1);
+    }
 
     /**
      * Calculate the sum of the positions of a list of boids other than itself
@@ -95,10 +103,29 @@ public class Boid extends Agent implements Cloneable {
     public BoidVector sumOfOtherBoidPositions(List<Boid> boids) {
         BoidVector sumOfOtherBoidPositions = new BoidVector();
         for (Boid boid :boids) {
-            if (!this.equals(boid))
+            if (!boid.equals(this))
                 sumOfOtherBoidPositions = sumOfOtherBoidPositions.add(boid.position);
         }
         return sumOfOtherBoidPositions;
+    }
+
+    public BoidVector boundPosition(int minWidth, int maxWidth, int minHeight, int maxHeight) {
+        BoidVector correctionMovement = new BoidVector();
+        if (this.position.x < minWidth)
+            correctionMovement.x = 10;
+        else if (this.position.x > maxWidth)
+            correctionMovement.x = -10;
+        if (this.position.y < minHeight)
+            correctionMovement.y = 10;
+        else if (this.position.y > maxHeight)
+            correctionMovement.y = -10;
+        return correctionMovement;
+    }
+
+    public void limitVelocity(int velocityLimit) {
+        double speed = velocity.magnitude();
+        if (speed > velocityLimit)
+            this.velocity = (this.velocity.divide(speed)).multiply(velocityLimit);
     }
 
     public String toString() {

@@ -1,8 +1,6 @@
 package model;
 
-import model.Context;
 import utilities.BoidVector;
-
 import javafx.scene.image.ImageView;
 import java.util.List;
 import java.util.ArrayList;
@@ -14,13 +12,26 @@ public class Sky extends Context {
     public int height;
     public List<Boid> boids;
     public int numberOfBoids;
-    public int cohesionFactor;
+    private int cohesionFactor;
+    private int separationFactor;
+    private int alignmentFactor;
+    private int velocityLimit;
+    private int separationSmoothing;
+    private int neighbourhoodRadius;
+    private int headingAlignmentFactor;
 
-    public Sky(int width, int height, int numberOfBoids, int cohesionFactor) {
+    public Sky(int width, int height, int numberOfBoids, int cohesionFactor, int separationFactor, int alignmentFactor,
+               int velocityLimit, int separationSmoothing, int neighbourhoodRadius, int headingAlignmentFactor) {
         this.width = width;
         this.height = height;
         this.numberOfBoids = numberOfBoids;
         this.cohesionFactor = cohesionFactor;
+        this.separationFactor = separationFactor;
+        this.alignmentFactor = alignmentFactor;
+        this.velocityLimit = velocityLimit;
+        this.separationSmoothing = separationSmoothing;
+        this.neighbourhoodRadius = neighbourhoodRadius;
+        this.headingAlignmentFactor = headingAlignmentFactor;
         this.boids = new ArrayList<Boid>();
         populateContext();
     }
@@ -31,32 +42,41 @@ public class Sky extends Context {
         for (int i = 0; i<numberOfBoids; i++) {
             int randomX = random.nextInt(width);
             int randomY = random.nextInt(height);
-            Boid randomBoid = new Boid(randomX, randomY);
+            int randomHeading = random.nextInt(360);
+            Boid randomBoid = new Boid(randomX, randomY, randomHeading);
             this.boids.add(randomBoid);
         }
     }
 
     @Override
     public void updateContext() {
-//        Random random = new Random();
         for (Boid boid : this.boids) {
-            BoidVector cohesion = boid.cohesion(this.boids, this.cohesionFactor);
+            BoidVector movement = new BoidVector();
+            List<Boid> boidsInRadius = getBoidsInRadius(boid, this.neighbourhoodRadius);
+
+            // Calculate movement rules
+            BoidVector cohesion = boid.cohesion(boidsInRadius, this.cohesionFactor);
+            BoidVector separation = boid.separation(boidsInRadius, this.separationFactor, this.separationSmoothing);
+            BoidVector alignment = boid.velocityAlignment(boidsInRadius, this.alignmentFactor);
+            BoidVector boundPosition = boid.boundPosition(100, width-100, 100, height-100);
+            movement = movement.add(cohesion);
+            movement = movement.add(separation);
+            movement = movement.add(alignment);
+            movement = movement.add(boundPosition);
+            boid.limitVelocity(this.velocityLimit);
+            System.out.println(boid.heading);
+            boid.headingAlignment(boidsInRadius, this.headingAlignmentFactor);
+            System.out.println(boid.heading);
+
+            // Create a copy of the old position
             BoidVector oldPosition = new BoidVector(boid.position);
-            boid.velocity = boid.velocity.add(cohesion);
+            boid.velocity = boid.velocity.add(movement);
             boid.position = boid.position.add(boid.velocity);
+
+            // Calculate rotation bearing from old position to new position
             double rotationBearing = oldPosition.relativeBearing(boid.position);
-            boid.drawSprite(boid.position, rotationBearing);
-
-
-
-
-
-
-//            BoidVector randomPosition = new BoidVector(random.nextInt(width-200)+100,
-//                    random.nextInt(height-200)+100);
-//            int randomRotation = random.nextInt(360);
-//            boid.drawSprite(randomPosition, randomRotation);
-//            boid.position = randomPosition;
+            boid.heading = rotationBearing;
+            boid.drawSprite();
         }
     }
 
@@ -66,5 +86,16 @@ public class Sky extends Context {
             boidSprites.add(boid.sprite);
         }
         return boidSprites;
+    }
+
+    public List<Boid> getBoidsInRadius(Boid boid, int radius) {
+        List<Boid> boidsInRadius = new ArrayList<Boid>();
+        for (Boid neighbour : this.boids) {
+            BoidVector neighbourPosition = new BoidVector(neighbour.position);
+            BoidVector boidsSeparation = neighbourPosition.subtract(boid.position);
+            if (boidsSeparation.magnitude() < radius)
+                boidsInRadius.add(neighbour);
+        }
+        return boidsInRadius;
     }
 }
