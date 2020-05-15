@@ -18,10 +18,9 @@ public class Sky extends Context {
     private int velocityLimit;
     private int separationSmoothing;
     private int neighbourhoodRadius;
-    private int headingAlignmentFactor;
 
     public Sky(int width, int height, int numberOfBoids, int cohesionFactor, int separationFactor, int alignmentFactor,
-               int velocityLimit, int separationSmoothing, int neighbourhoodRadius, int headingAlignmentFactor) {
+               int velocityLimit, int separationSmoothing, int neighbourhoodRadius) {
         this.width = width;
         this.height = height;
         this.numberOfBoids = numberOfBoids;
@@ -31,11 +30,13 @@ public class Sky extends Context {
         this.velocityLimit = velocityLimit;
         this.separationSmoothing = separationSmoothing;
         this.neighbourhoodRadius = neighbourhoodRadius;
-        this.headingAlignmentFactor = headingAlignmentFactor;
-        this.boids = new ArrayList<Boid>();
+        this.boids = new ArrayList<>();
         populateContext();
     }
 
+    /**
+     * Populate the context with randomly positioned boids
+     */
     @Override
     public void populateContext() {
         Random random = new Random();
@@ -48,6 +49,9 @@ public class Sky extends Context {
         }
     }
 
+    /**
+     * Update the method on each time step by applying the Boid rules
+     */
     @Override
     public void updateContext() {
         for (Boid boid : this.boids) {
@@ -64,9 +68,7 @@ public class Sky extends Context {
             movement = movement.add(alignment);
             movement = movement.add(boundPosition);
             boid.limitVelocity(this.velocityLimit);
-            System.out.println(boid.heading);
-            boid.headingAlignment(boidsInRadius, this.headingAlignmentFactor);
-            System.out.println(boid.heading);
+            boid.headingAlignment(boidsInRadius);
 
             // Create a copy of the old position
             BoidVector oldPosition = new BoidVector(boid.position);
@@ -74,22 +76,31 @@ public class Sky extends Context {
             boid.position = boid.position.add(boid.velocity);
 
             // Calculate rotation bearing from old position to new position
-            double rotationBearing = oldPosition.relativeBearing(boid.position);
-            boid.heading = rotationBearing;
+            boid.heading = oldPosition.relativeBearing(boid.position);
             boid.drawSprite();
         }
     }
 
+    /**
+     * Get a list of all Boid sprites as ImageView objects
+     * @return A list of Boid sprites as ImageView objects
+     */
     public List<ImageView> getBoidSprites() {
-        List<ImageView> boidSprites = new ArrayList<ImageView>();
+        List<ImageView> boidSprites = new ArrayList<>();
         for (Boid boid : this.boids) {
             boidSprites.add(boid.sprite);
         }
         return boidSprites;
     }
 
+    /**
+     * Get a list of all Boid sprites within a given radius of a given Boid
+     * @param boid The Boid at the centre of the search
+     * @param radius The radius from the given Boid to search within
+     * @return A list of the sprites of all Boids within the given radius of the given Boid
+     */
     public List<Boid> getBoidsInRadius(Boid boid, int radius) {
-        List<Boid> boidsInRadius = new ArrayList<Boid>();
+        List<Boid> boidsInRadius = new ArrayList<>();
         for (Boid neighbour : this.boids) {
             BoidVector neighbourPosition = new BoidVector(neighbour.position);
             BoidVector boidsSeparation = neighbourPosition.subtract(boid.position);

@@ -48,17 +48,24 @@ public class Boid extends Agent implements Cloneable {
 
     /**
      * Rule 1 - Cohesion: Boids try to fly towards the centre of mass of neighbouring boids
-     * @param neighbours
-     * @param cohesionFactor
+     * @param neighbours The list of neighbouring boids
+     * @param cohesionFactor The scaling parameter that decides how strong cohesion should be
      * @return The movement to make towards the calculated centre of mass as a BoidVector
      */
     public BoidVector cohesion(List<Boid> neighbours, int cohesionFactor) {
         BoidVector sumOfBoidVectorPositions = sumOfOtherBoidPositions(neighbours);
         BoidVector perceivedCentreOfMass = sumOfBoidVectorPositions.divide(neighbours.size()-1);
-        BoidVector movementTowardsCentreOfMass = (perceivedCentreOfMass.subtract(this.position)).divide(cohesionFactor);
-        return movementTowardsCentreOfMass;
+        return (perceivedCentreOfMass.subtract(this.position)).divide(cohesionFactor);
     }
 
+    /**
+     * Rule 2 - Separation: Boids adjust their position in an attempt to avoid colliding with neighbours
+     * @param neighbours The list of neighbouring boids
+     * @param separationFactor The parameter that decides how close boids can get before attempting to separate
+     * @param separationSmoothing The smoothing parameter that decides how extreme the adjustment should be, a lower
+     *                            value will result in a more sudden adjustment
+     * @return The movement away from neighbours as a BoidVector
+     */
     public BoidVector separation(List<Boid> neighbours, int separationFactor, int separationSmoothing) {
         BoidVector movementAwayFromNeighbours = new BoidVector();
         for (Boid boid : neighbours) {
@@ -74,6 +81,13 @@ public class Boid extends Agent implements Cloneable {
         return movementAwayFromNeighbours;
     }
 
+    /**
+     * Rule 3 - Velocity Alignment: Boids try to match the speed of their neighbours
+     * @param neighbours The list of neighbouring boids
+     * @param velocityAlignmentFactor The scaling parameter that decides the severity of the change in speed, a lower
+     *                                value will result in a more sudden adjustment
+     * @return The velocity adjustment to make as a BoidVector
+     */
     public BoidVector velocityAlignment(List<Boid> neighbours, int velocityAlignmentFactor) {
         BoidVector perceivedVelocity = new BoidVector();
         for (Boid boid : neighbours) {
@@ -85,30 +99,31 @@ public class Boid extends Agent implements Cloneable {
         return perceivedVelocity.subtract(this.velocity).divide(velocityAlignmentFactor);
     }
 
-    public void headingAlignment(List<Boid> neighbours, int headingAlignmentFactor) {
+    /**
+     * Rule 4 - Heading Alignment: Boids try to match the heading, or flight direction, of their neighbours
+     * @param neighbours The list of neighbouring boids
+     */
+    public void headingAlignment(List<Boid> neighbours) {
         double perceivedHeading = 0;
-        for (Boid boid : neighbours) {
-            if (!boid.equals(this)) {
-                perceivedHeading += boid.heading;
+        // Don't adjust if you only have one neighbour
+        if (neighbours.size() > 1) {
+            for (Boid boid : neighbours) {
+                if (!boid.equals(this)) {
+                    perceivedHeading += boid.heading;
+                }
             }
+            this.heading = perceivedHeading / (neighbours.size() - 1);
         }
-        this.heading = perceivedHeading/(neighbours.size()-1);
     }
 
     /**
-     * Calculate the sum of the positions of a list of boids other than itself
-     * @param boids
-     * @return BoidVector containing the sum of the individual boid positions other than itself
+     * Rule 5 - Bound Position: Boids cannot leave a given square and will be turned around if they reach the edges
+     * @param minWidth The western-most point that the boids can fly to
+     * @param maxWidth The eastern-most point that the boids can fly to
+     * @param minHeight The southern-most point that the boids can fly to
+     * @param maxHeight The northern-most point that the boids can fly to
+     * @return The correcting movement to keep the boids within the square
      */
-    public BoidVector sumOfOtherBoidPositions(List<Boid> boids) {
-        BoidVector sumOfOtherBoidPositions = new BoidVector();
-        for (Boid boid :boids) {
-            if (!boid.equals(this))
-                sumOfOtherBoidPositions = sumOfOtherBoidPositions.add(boid.position);
-        }
-        return sumOfOtherBoidPositions;
-    }
-
     public BoidVector boundPosition(int minWidth, int maxWidth, int minHeight, int maxHeight) {
         BoidVector correctionMovement = new BoidVector();
         if (this.position.x < minWidth)
@@ -122,10 +137,29 @@ public class Boid extends Agent implements Cloneable {
         return correctionMovement;
     }
 
+    /**
+     * Rule 6 - Limit Velocity: Boids cannot exceed a given maximum velocity, so never allow speed to exceed the given
+     * limit
+     * @param velocityLimit The maximum velocity of the boids
+     */
     public void limitVelocity(int velocityLimit) {
-        double speed = velocity.magnitude();
+        double speed = this.velocity.magnitude();
         if (speed > velocityLimit)
             this.velocity = (this.velocity.divide(speed)).multiply(velocityLimit);
+    }
+
+    /**
+     * Calculate the sum of the positions of a list of boids other than itself
+     * @param boids The list of neighbouring boids
+     * @return BoidVector containing the sum of the individual boid positions other than itself
+     */
+    public BoidVector sumOfOtherBoidPositions(List<Boid> boids) {
+        BoidVector sumOfOtherBoidPositions = new BoidVector();
+        for (Boid boid :boids) {
+            if (!boid.equals(this))
+                sumOfOtherBoidPositions = sumOfOtherBoidPositions.add(boid.position);
+        }
+        return sumOfOtherBoidPositions;
     }
 
     public String toString() {
